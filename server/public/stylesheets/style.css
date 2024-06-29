@@ -1,0 +1,48 @@
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: sandybrown;
+  padding-left: 25%;
+  padding-right: 25%;
+  
+}
+.container{
+    max-width: 600px;
+    background-color: lightskyblue;
+    border: 2px solid black;
+    border-radius: 8px;
+    padding: 5px 20px 20px;
+  
+
+}
+
+h1{
+    text-align: center;
+    color: deeppink;
+    padding-bottom: 20px;
+}
+
+ul{
+    padding: 30px;
+    list-style: none;
+}
+
+li{
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color:palevioletred;
+    border-radius: 6px;
+    
+}
+
+button{
+    border-radius: 4px;
+    padding: 5px 5px;
+    margin: 5px;
+}
+
+button:hover{
+    background-color: lightgreen;
+}
+form{
+    text-align: center;
+}
