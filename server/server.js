@@ -1,5 +1,5 @@
-import "dotenv/config.js";
-import fetch from "node-fetch";
+import 'dotenv/config.js';
+import fetch from 'node-fetch';
 import DataLoader from 'dataloader';
 import express from 'express';
 import { ApolloServer } from '@apollo/server';
@@ -20,7 +20,6 @@ let notes = [
   { id: "1", title: "Note 1", content: "CPSC 2650" },
   { id: "2", title: "Note 2", content: "Almost the end " },
 ];
-
 
 const noteLoader = new DataLoader(async (keys) => {
   return keys.map(key => notes.find(note => note.id === key));
@@ -49,7 +48,6 @@ const typeDefs = `
     generateImage(id: ID!): Note
   }
 `;
-
 
 // GraphQL resolvers
 const resolvers = {
@@ -87,7 +85,7 @@ const resolvers = {
 
       const note = notes[noteIndex];
       try {
-        const response = await fetch(`https://api.unsplash.com/search/photos?query=${note.content}&client_id=${UNSPLASH_ACCESS_KEY}`);
+        const response = await fetch(`https://api.unsplash.com/search/photos?query=${note.content}&client_id=${process.env.UNSPLASH_ACCESS_KEY}`);
         const data = await response.json();
         const firstImage = data.results[0];
         
@@ -110,7 +108,6 @@ const resolvers = {
     }
   }
 };
-
 
 // Initialize the Apollo server
 const server = new ApolloServer({
@@ -167,7 +164,5 @@ app.use(function (err, req, res, next) {
 
 // Start http server
 app.listen(port, () => {
-  // console.log(`Server started at http://localhost:${port}`);
   console.log(`GraphQL endpoint available at http://localhost:${port}/graphql`);
 });
-
