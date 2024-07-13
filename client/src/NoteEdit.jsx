@@ -1,30 +1,63 @@
-import { useState ,useEffect} from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
+import { gql, useQuery, useMutation } from "@apollo/client";
+
+// GraphQL queries and mutations
+const GET_NOTE = gql`
+  query GetNoteById($id: ID!) {
+    getNoteById(id: $id) {
+      id
+      title
+      content
+      imageUrl
+      authorName
+      authorLink
+    }
+  }
+`;
+
+const UPDATE_NOTE = gql`
+  mutation UpdateNote($id: ID!, $content: String!) {
+    updateNote(id: $id, content: $content) {
+      id
+      content
+    }
+  }
+`;
+
+const GENERATE_IMAGE = gql`
+  mutation GenerateImage($id: ID!) {
+    generateImage(id: $id) {
+      imageUrl
+      authorName
+      authorLink
+    }
+  }
+`;
 
 function NoteEdit() {
   const { id } = useParams();
-  const [note, setNote] = useState(null);
   const [editText, setEditText] = useState("");
 
-  useEffect(() => {
-    fetchNote();
-  }, []);
+  const { loading, error, data, refetch } = useQuery(GET_NOTE, {
+    variables: { id }
+  });
 
-  const fetchNote = async () => {
-    try {
-      let response = await axios.get(`http://localhost:3000/notes/${id}`);
-      setNote(response.data);
-      setEditText(response.data.text); 
-    } catch (error) {
-      console.error("Error fetching note:", error);
+  const [updateNote] = useMutation(UPDATE_NOTE);
+  const [generateImage] = useMutation(GENERATE_IMAGE);
+
+  useEffect(() => {
+    if (data && data.getNoteById) {
+      setEditText(data.getNoteById.content);
     }
-  };
+  }, [data]);
 
   const handleEdit = async () => {
     try {
-      await axios.patch(`http://localhost:3000/notes/${id}`, { text: editText });
-      fetchNote(); // Refresh note after edit
+      await updateNote({
+        variables: { id, content: editText }
+      });
+      refetch(); // Refresh note after edit
     } catch (error) {
       console.error("Error updating note:", error);
     }
@@ -34,33 +67,28 @@ function NoteEdit() {
     setEditText(e.target.value);
   };
 
-  const generateImage = async () => {
+  const handleGenerateImage = async () => {
     try {
-      let response = await axios.post(`http://localhost:3000/notes/generate-image/${id}`);
-      const { imageUrl, authorName, authorLink } = response.data;
-      setNote((prevNote) => ({
-        ...prevNote,
-        imageUrl,
-        authorName,
-        authorLink
-      }));
+      await generateImage({ variables: { id } });
+      refetch(); // Refresh note after generating image
     } catch (error) {
       console.error("Error generating image:", error);
     }
   };
 
-  if (!note) {
-    return <div>Loading...</div>;
-  }
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  const note = data.getNoteById;
 
   return (
     <div>
       <h2>Note Edit</h2>
       <div>ID: {note.id}</div>
-      <div>Original Text: {note.text}</div>
+      <div>Original Text: {note.content}</div>
       <input type="text" value={editText} onChange={handleInputChange} />
       <button onClick={handleEdit}>Save</button>
-      <button onClick={generateImage}>Generate Image</button>
+      <button onClick={handleGenerateImage}>Generate Image</button>
       {note.imageUrl && (
         <div>
           <img src={note.imageUrl} alt="Note" />

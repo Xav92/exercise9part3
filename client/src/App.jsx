@@ -1,21 +1,28 @@
 
-import "./App.css";
-import { useEffect, useState } from "react";
+import {useState} from "react";
 import { Routes, Route, Outlet, Link } from "react-router-dom";
-import axios from "axios";
+import { ApolloProvider, ApolloClient, InMemoryCache, gql, useQuery, useMutation } from "@apollo/client";
 import NoteEdit from "./NoteEdit";
+
+// Apollo Client setup
+const client = new ApolloClient({
+  uri: "http://localhost:3000/graphql",
+  cache: new InMemoryCache()
+});
 
 function App() {
   return (
-    <div>
-      <h1>ToDo List</h1>
-      <Routes>
+    <ApolloProvider client={client}>
+      <div>
+        <h1>ToDo List</h1>
+        <Routes>
           <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="/note/:id" element={<NoteEdit />} />
-        </Route>
-      </Routes>
-    </div>
+            <Route index element={<Home />} />
+            <Route path="/note/:id" element={<NoteEdit />} />
+          </Route>
+        </Routes>
+      </div>
+    </ApolloProvider>
   );
 }
 
@@ -38,46 +45,66 @@ function Layout() {
   );
 }
 
+// GraphQL Queries and Mutations
+const GET_NOTES = gql`
+  query GetNotes {
+    getNotes {
+      id
+      title
+      content
+    }
+  }
+`;
+
+const ADD_NOTE = gql`
+  mutation AddNote($title: String!, $content: String!) {
+    addNote(title: $title, content: $content) {
+      id
+      title
+      content
+    }
+  }
+`;
+
+const DELETE_NOTE = gql`
+  mutation deleteNote($id: ID!) {
+    deleteNote(id: $id) {
+      id
+    }
+  }
+`;
+
 function Home() {
-  const [notes, setNotes] = useState([]);
+  const { loading, error, data, refetch } = useQuery(GET_NOTES);
+  const [addNoteMutation] = useMutation(ADD_NOTE);
+  const [deleteNoteMutation] = useMutation(DELETE_NOTE);
   const [addNewNote, setAddNewNote] = useState("");
 
-  useEffect(() => {
-    (async () => {
-      let response = await axios.get("http://localhost:3000/notes/");
-      let data = response.data;
-      setNotes(data);
-    })();
-  }, []);
-
   const addNote = async () => {
-    await axios.post("http://localhost:3000/notes/", { newNote: addNewNote });
-    fetchNotes(); 
-    setAddNewNote(""); 
+    await addNoteMutation({ variables: { title: addNewNote, content: "" } });
+    refetch();
+    setAddNewNote("");
   };
 
   const deleteNote = async (id) => {
-    await axios.delete(`http://localhost:3000/notes/${id}`);
-    fetchNotes(); 
-  };
-
-  const fetchNotes = async () => {
-    let response = await axios.get("http://localhost:3000/notes/");
-    let data = response.data;
-    setNotes(data);
+    await deleteNoteMutation({ variables: { id } });
+    refetch();
   };
 
   const handleInputChange = (e) => {
     setAddNewNote(e.target.value);
   };
 
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>Error: {error.message}</p>;
+
   return (
     <div>
       <h2>Home</h2>
       <ul>
-        {notes.map((note) => (
+        {data.getNotes.map((note) => (
           <li key={note.id}>
-            <Link to={`/note/${note.id}`}>{note.text}</Link>
+            <Link to={`/note/${note.id}`}>{note.title}</Link>
             <button onClick={() => deleteNote(note.id)}>Delete</button>
           </li>
         ))}
@@ -92,7 +119,5 @@ function Home() {
     </div>
   );
 }
-
-
 
 export default App;
